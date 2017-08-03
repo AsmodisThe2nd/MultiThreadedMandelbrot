@@ -3,11 +3,76 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"        
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        <Image x:Name="image" Margin="0"/>
-        <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="432,289,0,0" VerticalAlignment="Top" Width="75" Click="button_Click"/>
+        Title="MainWindow" Height="545.7" Width="525">
+    <Grid
+                                                                                                                                                                               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="27*"/>
+        </Grid.RowDefinitions>
+        <Menu x:Name="menu" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <MenuItem Header="Datei">
+                <MenuItem Header="Speichern unter..." Click="MenuItem_Click"></MenuItem>
+                <Separator HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+                <MenuItem Header="Exit"></MenuItem>
+            </MenuItem>
+        </Menu>
 
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="297*"/>
+                <RowDefinition Height="41*"/>
+                <RowDefinition Height="85*"/>
+                <RowDefinition Height="56*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="355*"/>
+                <ColumnDefinition Width="162*"/>
+            </Grid.ColumnDefinitions>
+            <Image x:Name="image" Margin="0" Grid.RowSpan="1" />
+            <Button x:Name="button" Content="Render" Margin="0" Click="button_Click" Grid.Row="3" Grid.ColumnSpan="2" RenderTransformOrigin="-3.867,1.3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            <GroupBox x:Name="groupBox" Grid.Column="1" Header="Position" Margin="5,189,5,10" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <Grid Margin="0">
+                    <xctk:DecimalUpDown x:Name="startXInput" Value="-2" Margin="10,10,81,43" ValueChanged="startXInput_ValueChanged"  />
+                    <xctk:DecimalUpDown x:Name="startYInput" Value="-2" Margin="75,10,10,42" ValueChanged="startYInput_ValueChanged" />
+                    <xctk:DecimalUpDown x:Name="complexWidthInput" Value ="4"  Margin="10,50,81,0" ValueChanged="complexWidthInput_ValueChanged" />
+                    <xctk:DecimalUpDown x:Name="complexHeightInput" Value="4" Margin="75,50,10,0" ValueChanged="complexHeightInput_ValueChanged" />
+
+                </Grid>
+            </GroupBox>
+            <Grid Grid.Column="1" Margin="5" Grid.Row="1" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28*"/>
+                    <ColumnDefinition Width="53*"/>
+                </Grid.ColumnDefinitions>
+                <Slider x:Name="slider" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="32" SmallChange="1" Minimum="1" Value="8" VerticalContentAlignment="Stretch" AutoToolTipPlacement="TopLeft" />
+                <Label x:Name="label" Content="Threads" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            </Grid>
+            <Grid Grid.Column="1" Margin="5" Grid.Row="2" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28*"/>
+                    <ColumnDefinition Width="53*"/>
+                </Grid.ColumnDefinitions>
+                <Slider x:Name="slider2" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="500" SmallChange="1" Minimum="20" Value="100" VerticalContentAlignment="Stretch" AutoToolTipPlacement="TopLeft" />
+                <Label x:Name="label2" Content="Tile Size" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            </Grid>
+            <GroupBox x:Name="groupBox_Copy" Grid.Column="1" Header="Preview" Margin="5,10,5,200" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <Grid>
+                    <xctk:DecimalUpDown x:Name="previewIterationInput" HorizontalAlignment="Left" Height="23" Value="10" VerticalAlignment="Top" Width="120" Margin="10,10,0,0" ValueChanged="previewIterationInput_ValueChanged" />
+                    <xctk:DecimalUpDown x:Name="previewWidthInput" HorizontalAlignment="Left" Height="23"  Value="1024" VerticalAlignment="Top" Width="48" Margin="10,38,0,0" ValueChanged="previewWidthInput_ValueChanged" />
+                    <xctk:DecimalUpDown x:Name="previewHeightInput" HorizontalAlignment="Left" Height="23"  Value="768" VerticalAlignment="Top" Width="48" Margin="82,38,0,0" ValueChanged="previewHeightInput_ValueChanged" />
+                </Grid>
+            </GroupBox>
+            <GroupBox x:Name="groupBox_Copy1" Grid.Column="1" Header="Render" Margin="5,97,5,113" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <Grid>
+                    <xctk:DecimalUpDown x:Name="renderIterationInput" HorizontalAlignment="Left" Height="23"  Value="1000" VerticalAlignment="Top" Width="120" Margin="10,10,0,0" ValueChanged="renderIterationInput_ValueChanged" />
+                    <xctk:DecimalUpDown x:Name="renderWidthInput" HorizontalAlignment="Left" Height="23" Value="1920" VerticalAlignment="Top" Width="48" Margin="10,38,0,0" ValueChanged="renderWidthInput_ValueChanged"/>
+                    <xctk:DecimalUpDown x:Name="renderHeightInput" HorizontalAlignment="Left" Height="23" Value="1080" VerticalAlignment="Top" Width="48" Margin="82,38,0,0" ValueChanged="renderHeightInput_ValueChanged"/>
+                </Grid>
+            </GroupBox>
+
+        </Grid>
     </Grid>
 </Window>

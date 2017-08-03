@@ -1,39 +1,31 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Fractal
 {
-    class Mandelbrot
+    internal class Mandelbrot
     {
-        private decimal _x, _y, _complexWidth, _complexHeight;
-        int _pixelWidth = 0, _pixelHeight = 0;
-        bool _changedSinceLastCalculation = false;
+        private readonly object _byteBufferLock;
+        private bool _changedSinceLastCalculation;
         private int _maxIterations;
+        private readonly int _maxPixelTileSize;
+        private readonly int _numThreadsPerTaskQueue = 4;
+        private byte[] _pixelValues;
+        private int _pixelWidth, _pixelHeight;
+        private readonly object _settingsLock;
         private bool _stopThreads;
+        private decimal _x, _y, _complexWidth, _complexHeight;
+        private readonly ConcurrentQueue<FractalTask> _drawingTasks;
+        private readonly ConcurrentQueue<FractalTask> _tasks;
+        private bool _stopRendering;
 
-        private object _settingsLock;
-        private object _byteBufferLock;
-
-        private int _maxPixelTileSize;
-        private Byte[] _pixelValues;
-
-        private ConcurrentQueue<FractalTask> tasks;
-        private ConcurrentQueue<FractalTask> drawingTasks;
-
-        private int _numThreadsPerTaskQueue = 4;
-
-        private int _oldPixelWidth;
-        private int _oldPixelHeight;
-
-
-        public Mandelbrot(int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth = 1920, int pixelHeight = 1080, int maxTileSize = 64)
+        public Mandelbrot(int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth = 1920,
+            int pixelHeight = 1080, int maxTileSize = 64)
         {
             _x = x;
             _y = y;
@@ -46,15 +38,15 @@ namespace Fractal
             _pixelWidth = pixelWidth;
             _pixelHeight = pixelHeight;
             _maxIterations = maxIterations;
-            tasks = new ConcurrentQueue<FractalTask>();
-            drawingTasks = new ConcurrentQueue<FractalTask>();
-            _pixelValues = new Byte[(PixelFormats.Bgra32.BitsPerPixel / 8) * _pixelWidth * _pixelHeight];
-            Thread mainThread = new Thread(MainThreadTask) { IsBackground = true, Name = "MandelbrotMainThread" };
+            _tasks = new ConcurrentQueue<FractalTask>();
+            _drawingTasks = new ConcurrentQueue<FractalTask>();
+            _pixelValues = new byte[PixelFormats.Bgra32.BitsPerPixel / 8 * _pixelWidth * _pixelHeight];
+            var mainThread = new Thread(MainThreadTask) { IsBackground = true, Name = "MandelbrotMainThread" };
 
-            for (int i = 0; i < _numThreadsPerTaskQueue; i++)
+            for (var i = 0; i < _numThreadsPerTaskQueue; i++)
             {
-                Thread workerThread = new Thread(WorkerTask) { IsBackground = true, Name = "WorkerThread " + i };
-                Thread drawingThread = new Thread(DrawingWorkerTask) { IsBackground = true, Name = "DrawingThread " + i };
+                var workerThread = new Thread(WorkerTask) { IsBackground = true, Name = "WorkerThread " + i };
+                var drawingThread = new Thread(DrawingWorkerTask) { IsBackground = true, Name = "DrawingThread " + i }; //Both kinds of Threads do both tasks. But drawing Threads prioritize drawing and normal workers prioritize calculation
                 workerThread.Start();
                 drawingThread.Start();
             }
@@ -65,42 +57,17 @@ namespace Fractal
         {
             while (!_stopThreads)
             {
-                FractalTask t;
-                bool workToDo = tasks.TryDequeue(out t);
-                if (!workToDo)
+                if (!_stopRendering)
                 {
-
-                    workToDo = drawingTasks.TryDequeue(out t);
+                    FractalTask t;
+                    var workToDo = _tasks.TryDequeue(out t);
                     if (!workToDo)
                     {
-                        Thread.Sleep(100);
-                        continue;
-                    }
-                    else
-                    {
-                        Draw(t);
-                    }
-                }
-                else
-                {
-                    InternalCalculate(t);
-                }
-            }
-        }
-
-        private void DrawingWorkerTask()
-        {
-            while (!_stopThreads)
-            {
-                FractalTask t;
-                bool workToDo = drawingTasks.TryDequeue(out t);
-                if (!workToDo)
-                {
-                    workToDo = tasks.TryDequeue(out t);
-                    if (!workToDo)
-                    {
-                        Thread.Sleep(100);
-                        continue;
+                        workToDo = _drawingTasks.TryDequeue(out t);
+                        if (!workToDo)
+                            Thread.Sleep(100);
+                        else
+                            Draw(t);
                     }
                     else
                     {
@@ -109,9 +76,36 @@ namespace Fractal
                 }
                 else
                 {
-                    Draw(t);
+                    Thread.Sleep(100);
                 }
+            }
+        }
 
+        private void DrawingWorkerTask()
+        {
+            while (!_stopThreads)
+            {
+                if (!_stopRendering)
+                {
+                    FractalTask t;
+                    var workToDo = _drawingTasks.TryDequeue(out t);
+                    if (!workToDo)
+                    {
+                        workToDo = _tasks.TryDequeue(out t);
+                        if (!workToDo)
+                            Thread.Sleep(100);
+                        else
+                            InternalCalculate(t);
+                    }
+                    else
+                    {
+                        Draw(t);
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(100);
+                }
             }
         }
 
@@ -121,16 +115,15 @@ namespace Fractal
         }
 
 
-        void MainThreadTask()
+        private void MainThreadTask()
         {
             while (!_stopThreads)
             {
-
                 lock (_settingsLock)
                 {
                     if (_changedSinceLastCalculation)
                     {
-                        System.Diagnostics.Debug.WriteLine("Creating tasks...");
+                        Debug.WriteLine("Creating tasks...");
                         PartitionAndPlanTasks();
                         _changedSinceLastCalculation = false;
                     }
@@ -141,32 +134,33 @@ namespace Fractal
 
         private void PartitionAndPlanTasks()
         {
-            int numTilesX = (int)Math.Ceiling((double)_pixelWidth / (double)_maxPixelTileSize);
-            int numTilesY = (int)Math.Ceiling((double)_pixelHeight / (double)_maxPixelTileSize);
-            decimal stepX = _complexWidth / _pixelWidth;
-            decimal stepY = _complexHeight / _pixelHeight;
+            var numTilesX = (int)Math.Ceiling(_pixelWidth / (double)_maxPixelTileSize);
+            var numTilesY = (int)Math.Ceiling(_pixelHeight / (double)_maxPixelTileSize);
+            var stepX = _complexWidth / _pixelWidth;
+            var stepY = _complexHeight / _pixelHeight;
 
-            for (int tileX = 0; tileX < numTilesX; tileX++)
-            {
-                for (int tileY = 0; tileY < numTilesY; tileY++)
+            for (var tileY = 0; tileY < numTilesY; tileY++)
+                for (var tileX = 0; tileX < numTilesX; tileX++)
                 {
-                    int borderX = (int)Math.Min(_pixelWidth - tileX * _maxPixelTileSize, _maxPixelTileSize);
-                    int borderY = (int)Math.Min(_pixelHeight - tileY * _maxPixelTileSize, _maxPixelTileSize);
+                    if (_stopRendering) return;
+                    var borderX = Math.Min(_pixelWidth - tileX * _maxPixelTileSize, _maxPixelTileSize);
+                    var borderY = Math.Min(_pixelHeight - tileY * _maxPixelTileSize, _maxPixelTileSize);
 
 
-                    int currentCornerX = tileX * _maxPixelTileSize;
-                    int currentCornerY = tileY * _maxPixelTileSize;
-                    decimal complexStartX = _x + currentCornerX * stepX;
-                    decimal complexStartY = _y + currentCornerY * stepY;
+                    var currentCornerX = tileX * _maxPixelTileSize;
+                    var currentCornerY = tileY * _maxPixelTileSize;
+                    var complexStartX = _x + currentCornerX * stepX;
+                    var complexStartY = _y + currentCornerY * stepY;
 
-                    FractalTask t = new FractalTask(_maxIterations, stepX, stepY, complexStartX, complexStartY, new Point(currentCornerX, currentCornerY), borderX, borderY, TaskType.Calculate);
-                    tasks.Enqueue(t);
-
+                    var t = new FractalTask(_maxIterations, stepX, stepY, complexStartX, complexStartY,
+                        new Point(currentCornerX, currentCornerY), borderX, borderY, TaskType.Calculate);
+                    
+                    _tasks.Enqueue(t);
                 }
-            }
         }
 
-        public void Calculate(int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth, int pixelHeight)
+        public void Calculate(int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth,
+            int pixelHeight)
         {
             lock (_settingsLock)
             {
@@ -176,33 +170,30 @@ namespace Fractal
                 _complexWidth = width;
                 _complexHeight = height;
                 if (_pixelWidth != pixelWidth || _pixelHeight != pixelHeight)
-                {
-                    _pixelValues = new Byte[(PixelFormats.Bgra32.BitsPerPixel / 8) * pixelWidth * pixelHeight]; //render size changed so we can't reuse our buffer
-                }
+                    _pixelValues =
+                        new byte[PixelFormats.Bgra32.BitsPerPixel / 8 * pixelWidth *
+                                 pixelHeight]; //render size changed so we can't reuse our buffer
 
                 _pixelWidth = pixelWidth;
                 _pixelHeight = pixelHeight;
 
-
+                _stopRendering = false;
                 _changedSinceLastCalculation = true;
             }
         }
-
-
 
 
         //  public double[][,] calculate(int resultX = 1920, int resultY = 1080, int maxIterations = 1000, Image img = null)
 
         private void InternalCalculate(FractalTask t)
         {
-            for (int y = 0; y < t.Height; y++)
+            for (var y = 0; y < t.Height; y++)
             {
                 var cIm = t.GetImaginaryPart(y);
 
-                for (int x = 0; x < t.Width; x++)
+                for (var x = 0; x < t.Width; x++)
                 {
-
-                    decimal cReal = t.GetRealPart(x);
+                    var cReal = t.GetRealPart(x);
                     decimal zReal = 0;
                     decimal zIm = 0;
                     decimal zAbs = 0;
@@ -216,29 +207,33 @@ namespace Fractal
                         zAbs = zReal * zReal + zIm * zIm;
                         n++;
                     }
+                    if (_stopRendering) return;
+
                     t.SetIterations(x, y, n);
+
                 }
             }
 
             t.Type = TaskType.Draw;
-            drawingTasks.Enqueue(t);
+            if (!_stopRendering)
+            {
+                _drawingTasks.Enqueue(t);
+            }
         }
 
         private void Draw(FractalTask t)
         {
-            Byte[] colorBuffer = new Byte[3];
+            var colorBuffer = new byte[3];
 
 
-            for (int y = 0; y < t.Height; y++)
-            {
-                for (int x = 0; x < t.Width; x++)
+            for (var y = 0; y < t.Height; y++)
+                for (var x = 0; x < t.Width; x++)
                 {
-                    int currentPos = 4 * (((int)t.UpperLeftCorner.X + x) +
+                    var currentPos = 4 * ((int)t.UpperLeftCorner.X + x +
                                           ((int)t.UpperLeftCorner.Y + y) * _pixelWidth);
 
                     if (t.GetIterations(x, y) >= _maxIterations)
                     {
-
                         _pixelValues[currentPos] = 0;
                         _pixelValues[currentPos + 1] = 0;
                         _pixelValues[currentPos + 2] = 0;
@@ -253,12 +248,12 @@ namespace Fractal
                         _pixelValues[currentPos + 2] = colorBuffer[0];
                         _pixelValues[currentPos + 3] = 255;
                     }
-
                 }
+            if (_stopRendering) return;
 
-            }
             OnTileAvailable(new EventArgs());
         }
+
         protected virtual void OnTileAvailable(EventArgs e)
         {
             NewTileAvailable?.Invoke(this, e);
@@ -271,18 +266,16 @@ namespace Fractal
         {
             lock (_byteBufferLock)
             {
-                BitmapSource img = BitmapSource.Create(_pixelWidth, _pixelHeight, 96, 96, PixelFormats.Bgra32, null,
-                    _pixelValues, (_pixelWidth * PixelFormats.Bgra32.BitsPerPixel) / 8);
+                var img = BitmapSource.Create(_pixelWidth, _pixelHeight, 96, 96, PixelFormats.Bgra32, null,
+                    _pixelValues, _pixelWidth * PixelFormats.Bgra32.BitsPerPixel / 8);
                 return img;
-
             }
-
         }
 
 
-        private void MapColor(int i, double r, double c, ref Byte[] colorRGB)
+        private void MapColor(int i, double r, double c, ref byte[] colorRGB)
         {
-            double di = (double)i;
+            double di = i;
             double zn;
             double hue;
 
@@ -290,9 +283,9 @@ namespace Fractal
             if (zn <= 0)
                 zn = 0.1;
 
-            hue = di + 1.0 - Math.Abs(Math.Log(zn)) / Math.Log(2.0);  // 2 is escape radius
+            hue = di + 1.0 - Math.Abs(Math.Log(zn)) / Math.Log(2.0); // 2 is escape radius
             hue = 0.95 + 20.0 * hue; // adjust to make it prettier
-                                     // the hsv function expects values from 0 to 360
+            // the hsv function expects values from 0 to 360
             while (hue > 360.0)
                 hue -= 360.0;
             while (hue < 0.0)
@@ -301,21 +294,38 @@ namespace Fractal
             ColorFromHSV(hue, 0.8, 1.0, ref colorRGB);
         }
 
-        public static void ColorFromHSV(double hue, double saturation, double value, ref Byte[] colorRGB)
+        public static void ColorFromHSV(double hue, double saturation, double value, ref byte[] colorRGB)
         {
-            int hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
-            double f = hue / 60 - Math.Floor(hue / 60);
+            var hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
+            var f = hue / 60 - Math.Floor(hue / 60);
 
             value = value * 255;
-            Byte v = Convert.ToByte(value);
-            Byte p = Convert.ToByte(value * (1 - saturation));
-            Byte q = Convert.ToByte(value * (1 - f * saturation));
-            Byte t = Convert.ToByte(value * (1 - (1 - f) * saturation));
+            var v = Convert.ToByte(value);
+            var p = Convert.ToByte(value * (1 - saturation));
+            var q = Convert.ToByte(value * (1 - f * saturation));
+            var t = Convert.ToByte(value * (1 - (1 - f) * saturation));
 
 
             colorRGB[0] = hi == 0 ? v : (hi == 1 ? q : (hi == 2 || hi == 3 ? p : (hi == 4 ? t : v)));
             colorRGB[1] = hi == 0 ? t : (hi == 1 ? v : (hi == 2 ? v : (hi == 3 ? q : (hi == 4 ? p : p))));
             colorRGB[2] = hi == 0 ? p : (hi == 1 ? p : (hi == 2 ? t : (hi == 3 ? v : (hi == 4 ? v : q))));
+        }
+
+        public void StopRendering()
+        {
+            _stopRendering = true;
+
+            FractalTask t;
+
+            while (!_tasks.IsEmpty)
+            {
+                _tasks.TryDequeue(out t);
+            }
+            while (!_drawingTasks.IsEmpty)
+            {
+                _drawingTasks.TryDequeue(out t);
+            }
+
         }
     }
 }
