@@ -59,7 +59,7 @@ namespace Fractal
                 _renderMandelbrot = new Mandelbrot(_renderMaxIt, _startX, _startY, _sectionSizeX, _sectionSizeY, _renderResultX, _renderResultY, _renderMaxTileSize);
                 _renderMandelbrot.NewTileAvailable += RefreshImage;
             }
-            _initialized = true;
+          //  _initialized = true;
 
         }
 
@@ -118,7 +118,6 @@ namespace Fractal
         private void previewWidthInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             _previewResultX = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
-
             if (_initialized)
             {
                 decimal res = (decimal) _previewResultX / (decimal) _previewResultY;
