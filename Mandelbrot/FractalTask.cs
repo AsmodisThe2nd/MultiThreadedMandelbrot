@@ -1,42 +1,51 @@
 ﻿using System;
-using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 
 namespace Fractal
 {
-    enum TaskType
+    internal enum TaskType
     {
         Calculate,
         Draw
     }
 
-    class FractalTask
+    internal class FractalTask
     {
-        private decimal _stepSizeX;
-        private decimal _stepSizeY;
-        private decimal _complexStartX;
-        private decimal _complexStartY;
-        private Point _upperLeftCorner;
-        private int _width;
-        private int _height;
-        private int _maxIterations;
-        private TaskType _type;
-        
-        private int[,] _results; //iterations, real, im
+        private readonly int[,] _results; //iterations, real, im
 
-        public FractalTask(int maxIterations, decimal stepSizeX, decimal stepSizeY, decimal complexStartX, decimal complexStartY, Point upperLeftCorner, int width, int height, TaskType type)
+        public FractalTask(int maxIterations, decimal stepSizeX, decimal stepSizeY, decimal complexStartX,
+            decimal complexStartY, Point upperLeftCorner, int width, int height, TaskType type)
         {
-            this._stepSizeX = stepSizeX;
-            this._stepSizeY = stepSizeY;
-            this._complexStartX = complexStartX;
-            this._complexStartY = complexStartY;
-            this._upperLeftCorner = upperLeftCorner;
-            this._width = width;
-            this._height = height;
-            this._type = type;
-            this._maxIterations = maxIterations;
+            StepSizeX = stepSizeX;
+            StepSizeY = stepSizeY;
+            ComplexStartX = complexStartX;
+            ComplexStartY = complexStartY;
+            UpperLeftCorner = upperLeftCorner;
+            Width = width;
+            Height = height;
+            Type = type;
+            MaxIterations = maxIterations;
             _results = new int[width, height];
         }
+
+        public int MaxIterations { get; set; }
+
+
+        public decimal StepSizeX { get; set; }
+
+        public decimal StepSizeY { get; set; }
+
+        public TaskType Type { get; set; }
+
+        public decimal ComplexStartX { get; set; }
+
+        public decimal ComplexStartY { get; set; }
+
+        public Point UpperLeftCorner { get; set; }
+
+        public int Width { get; set; }
+
+        public int Height { get; set; }
 
 
         public void SetIterations(int x, int y, int result)
@@ -51,71 +60,16 @@ namespace Fractal
 
         public decimal GetRealPart(int x)
         {
-            if (x < _width && x >= 0)
-                return _complexStartX + _stepSizeX * x;
-            else
-            {
-                throw new IndexOutOfRangeException();
-            }
-        }
-
-        public int MaxIterations
-        {
-            get => _maxIterations;
-            set => _maxIterations = value;
+            if (x < Width && x >= 0)
+                return ComplexStartX + StepSizeX * x;
+            throw new IndexOutOfRangeException();
         }
 
         public decimal GetImaginaryPart(int y)
         {
-            if (y < _height && y >= 0)
-                return _complexStartY - _stepSizeY * y;
-            else
-            {
-                throw  new IndexOutOfRangeException();
-            }
-        }
-
-
-        public decimal StepSizeX
-        {
-            get => _stepSizeX;
-            set => _stepSizeX = value;
-        }
-
-        public decimal StepSizeY
-        {
-            get => _stepSizeY;
-            set => _stepSizeY = value;
-        }
-
-        public TaskType Type {
-            get => _type;
-            set => _type = value;
-        }
-
-        public decimal ComplexStartX {
-            get => _complexStartX;
-            set => _complexStartX = value;
-        }
-
-        public decimal ComplexStartY {
-            get => _complexStartY;
-            set => _complexStartY = value;
-        }
-
-        public Point UpperLeftCorner {
-            get => _upperLeftCorner;
-            set => _upperLeftCorner = value;
-        }
-
-        public int Width {
-            get => _width;
-            set => _width = value;
-        }
-
-        public int Height {
-            get => _height;
-            set => _height = value;
+            if (y < Height && y >= 0)
+                return ComplexStartY - StepSizeY * y;
+            throw new IndexOutOfRangeException();
         }
     }
 }

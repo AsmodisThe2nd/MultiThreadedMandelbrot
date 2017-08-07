@@ -2,15 +2,13 @@
 
 namespace Fractal
 {
-    interface IColorMapper
+    internal interface IColorMapper
     {
         void MapColor(int iterations, int maxIterations, double realPart, double imPart, ref byte[] colorBuffer);
     }
 
-    class ColorMappingTools
+    internal class ColorMappingTools
     {
-
-
         public static void ColorFromHsv(double hue, double saturation, double value, ref byte[] colorRgb)
         {
             var hi = Convert.ToInt32(Math.Floor(hue / 60)) % 6;
@@ -30,7 +28,7 @@ namespace Fractal
     }
 
 
-    class HsvColorMapper : IColorMapper
+    internal class HsvColorMapper : IColorMapper
     {
         public void MapColor(int i, int maxI, double r, double c, ref byte[] colorRgb)
         {
@@ -40,7 +38,6 @@ namespace Fractal
                 colorRgb[1] = 0;
                 colorRgb[2] = 0;
                 return;
-
             }
             double di = i;
             double zn;
