@@ -68,7 +68,7 @@ namespace Fractal
         public decimal GetImaginaryPart(int y)
         {
             if (y < _height && y >= 0)
-                return _complexStartY + _stepSizeY * y;
+                return _complexStartY - _stepSizeY * y;
             else
             {
                 throw  new IndexOutOfRangeException();

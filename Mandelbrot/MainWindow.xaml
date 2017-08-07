@@ -3,75 +3,160 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"        
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="MainWindow" Height="545.7" Width="525">
+        Title="MainWindow" Height="571.7" Width="931" MinWidth="500" MinHeight="500">
     <Grid
-                                                                                                                                                                               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
         <Grid.RowDefinitions>
-            <RowDefinition Height="2*"/>
-            <RowDefinition Height="27*"/>
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="27*" />
         </Grid.RowDefinitions>
+
         <Menu x:Name="menu" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
             <MenuItem Header="Datei">
-                <MenuItem Header="Speichern unter..." Click="MenuItem_Click"></MenuItem>
-                <Separator HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-                <MenuItem Header="Exit"></MenuItem>
+                <MenuItem Header="Speichern unter..." Click="MenuItem_Click" />
+                <Separator HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+                <MenuItem Header="Exit" />
             </MenuItem>
         </Menu>
 
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="297*"/>
-                <RowDefinition Height="41*"/>
-                <RowDefinition Height="85*"/>
-                <RowDefinition Height="56*"/>
+                <RowDefinition Height="297*" />
+                <RowDefinition Height="41*" />
+                <RowDefinition Height="85*" />
+                <RowDefinition Height="56*" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="355*"/>
-                <ColumnDefinition Width="162*"/>
+                <ColumnDefinition Width="26*" />
+                <ColumnDefinition Width="21*" MaxWidth="500" />
             </Grid.ColumnDefinitions>
-            <Image x:Name="image" Margin="0" Grid.RowSpan="1" />
-            <Button x:Name="button" Content="Render" Margin="0" Click="button_Click" Grid.Row="3" Grid.ColumnSpan="2" RenderTransformOrigin="-3.867,1.3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-            <GroupBox x:Name="groupBox" Grid.Column="1" Header="Position" Margin="5,189,5,10" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid Margin="0">
-                    <xctk:DecimalUpDown Increment="0.000001" x:Name="startXInput" Value="-2" Margin="10,10,81,43" ValueChanged="startXInput_ValueChanged"  />
-                    <xctk:DecimalUpDown Increment="0.000001" x:Name="startYInput" Value="-2" Margin="75,10,10,42" ValueChanged="startYInput_ValueChanged" />
-                    <xctk:DecimalUpDown Increment="0.000001" x:Name="complexWidthInput" Value ="4"  Margin="10,50,81,0" ValueChanged="complexWidthInput_ValueChanged" />
-                    <xctk:DecimalUpDown Increment="0.000001" x:Name="complexHeightInput" Value="4" Margin="75,50,10,0" ValueChanged="complexHeightInput_ValueChanged" />
 
+            <Image Margin="0" Grid.Row="0" Grid.Column="0" Source="pack://siteoforigin:,,,/Resources/Cross.ico" Stretch="None"/>
+
+            <Image x:Name="image" Margin="0" Grid.Row="0" Grid.Column="0" />
+            
+            <Button x:Name="button" Content="Render" Margin="0" Click="button_Click" Grid.Row="3" Grid.ColumnSpan="1"
+                    RenderTransformOrigin="-3.867,1.3" HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center" />
+
+
+            <Grid Grid.Column="1" Grid.RowSpan="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="3*" MaxHeight="100" />
+                    <RowDefinition Height="3*" MaxHeight="100" />
+                    <RowDefinition Height="3*" MaxHeight="100" />
+                    <RowDefinition Height="1*" MaxHeight="100" />
+                    <RowDefinition Height="1*" MaxHeight="100" />
+                </Grid.RowDefinitions>
+
+
+                <GroupBox x:Name="previewGroupBox" Header="Preview" Margin="5,10,5,0"
+                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="1*" />
+                            <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <xctk:DecimalUpDown x:Name="previewIterationInput" Value="100" Margin="5"
+                                            ValueChanged="previewIterationInput_ValueChanged"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                            Grid.ColumnSpan="2" />
+                        <xctk:DecimalUpDown x:Name="previewWidthInput" Value="1024" Margin="5"
+                                            ValueChanged="previewWidthInput_ValueChanged" Grid.Row="1"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <xctk:DecimalUpDown x:Name="previewHeightInput" Value="768" Margin="5"
+                                            ValueChanged="previewHeightInput_ValueChanged" Grid.Row="1" Grid.Column="1"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                    </Grid>
+                </GroupBox>
+                <GroupBox x:Name="renderGroupBox" Grid.Row="1" Header="Render" Margin="5,0,5,5"
+                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="1*" />
+                            <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <xctk:DecimalUpDown x:Name="renderIterationInput" Value="1000" Margin="5"
+                                            ValueChanged="renderIterationInput_ValueChanged" Grid.ColumnSpan="2"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <xctk:DecimalUpDown x:Name="renderWidthInput" Value="1920" Margin="5"
+                                            ValueChanged="renderWidthInput_ValueChanged" Grid.Row="1"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <xctk:DecimalUpDown x:Name="renderHeightInput" Value="1080" Margin="5"
+                                            ValueChanged="renderHeightInput_ValueChanged" Grid.Column="1" Grid.Row="1"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                    </Grid>
+                </GroupBox>
+                <GroupBox x:Name="positionGroupBox" Header="Position" Margin="5,0,5,10"
+                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="2">
+                    <Grid Margin="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="1*" />
+                            <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <xctk:DecimalUpDown Increment="0.000001" x:Name="centerXInput" Value="0" Margin="5"
+                                            ValueChanged="centerXInput_ValueChanged" HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center" />
+                        <xctk:DecimalUpDown Grid.Row="0" Increment="0.000001" x:Name="centerYInput" Value="0"
+                                            Margin="5" ValueChanged="centerYInput_ValueChanged" Grid.Column="1"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                        <xctk:DecimalUpDown Increment="10" x:Name="zoomInput" Value="1" Margin="5"
+                                            ValueChanged="zoomInput_ValueChanged" Grid.Column="0" Grid.Row="1"
+                                            Grid.ColumnSpan="2" HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center" Minimum="1" />
+                    </Grid>
+                </GroupBox>
+
+                <Grid Margin="5" Grid.Row="3" Grid.RowSpan="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28*" />
+                        <ColumnDefinition Width="53*" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Name="slider" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="32"
+                            SmallChange="1" Minimum="1" Value="8" VerticalContentAlignment="Stretch"
+                            AutoToolTipPlacement="TopLeft" />
+                    <Label x:Name="label" Content="Threads" Margin="0" HorizontalContentAlignment="Stretch"
+                           VerticalContentAlignment="Stretch" />
                 </Grid>
-            </GroupBox>
-            <Grid Grid.Column="1" Margin="5" Grid.Row="1" >
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="28*"/>
-                    <ColumnDefinition Width="53*"/>
-                </Grid.ColumnDefinitions>
-                <Slider x:Name="slider" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="32" SmallChange="1" Minimum="1" Value="8" VerticalContentAlignment="Stretch" AutoToolTipPlacement="TopLeft" />
-                <Label x:Name="label" Content="Threads" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+                <Grid Margin="5" Grid.Row="4" Grid.RowSpan="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28*" />
+                        <ColumnDefinition Width="53*" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Name="slider2" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="500"
+                            SmallChange="1" Minimum="20" Value="100" VerticalContentAlignment="Stretch"
+                            AutoToolTipPlacement="TopLeft" />
+                    <Label x:Name="label2" Content="Tile Size" Margin="0" HorizontalContentAlignment="Stretch"
+                           VerticalContentAlignment="Stretch" />
+                </Grid>
+
             </Grid>
-            <Grid Grid.Column="1" Margin="5" Grid.Row="2" >
+            
+            <Grid Margin="0" Grid.Row="1" >
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="28*"/>
-                    <ColumnDefinition Width="53*"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+
                 </Grid.ColumnDefinitions>
-                <Slider x:Name="slider2" Grid.Column="1" HorizontalContentAlignment="Stretch" Maximum="500" SmallChange="1" Minimum="20" Value="100" VerticalContentAlignment="Stretch" AutoToolTipPlacement="TopLeft" />
-                <Label x:Name="label2" Content="Tile Size" Margin="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+                
+                <Label x:Name="realPartLabel" />
+                <Label x:Name="imPartLabel" Grid.Column="1"/>
             </Grid>
-            <GroupBox x:Name="groupBox_Copy" Grid.Column="1" Header="Preview" Margin="5,10,5,200" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid>
-                    <xctk:DecimalUpDown x:Name="previewIterationInput" HorizontalAlignment="Left" Height="23" Value="10" VerticalAlignment="Top" Width="120" Margin="10,10,0,0" ValueChanged="previewIterationInput_ValueChanged" />
-                    <xctk:DecimalUpDown x:Name="previewWidthInput" HorizontalAlignment="Left" Height="23"  Value="1024" VerticalAlignment="Top" Width="48" Margin="10,38,0,0" ValueChanged="previewWidthInput_ValueChanged" />
-                    <xctk:DecimalUpDown x:Name="previewHeightInput" HorizontalAlignment="Left" Height="23"  Value="768" VerticalAlignment="Top" Width="48" Margin="82,38,0,0" ValueChanged="previewHeightInput_ValueChanged" />
-                </Grid>
-            </GroupBox>
-            <GroupBox x:Name="groupBox_Copy1" Grid.Column="1" Header="Render" Margin="5,97,5,113" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid>
-                    <xctk:DecimalUpDown x:Name="renderIterationInput" HorizontalAlignment="Left" Height="23"  Value="1000" VerticalAlignment="Top" Width="120" Margin="10,10,0,0" ValueChanged="renderIterationInput_ValueChanged" />
-                    <xctk:DecimalUpDown x:Name="renderWidthInput" HorizontalAlignment="Left" Height="23" Value="1920" VerticalAlignment="Top" Width="48" Margin="10,38,0,0" ValueChanged="renderWidthInput_ValueChanged"/>
-                    <xctk:DecimalUpDown x:Name="renderHeightInput" HorizontalAlignment="Left" Height="23" Value="1080" VerticalAlignment="Top" Width="48" Margin="82,38,0,0" ValueChanged="renderHeightInput_ValueChanged"/>
-                </Grid>
-            </GroupBox>
+
 
         </Grid>
     </Grid>
