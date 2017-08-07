@@ -33,9 +33,9 @@
                 <ColumnDefinition Width="21*" MaxWidth="500" />
             </Grid.ColumnDefinitions>
 
+            <Image x:Name="image" Margin="0" Grid.Row="0" Grid.Column="0" />
             <Image Margin="0" Grid.Row="0" Grid.Column="0" Source="pack://siteoforigin:,,,/Resources/Cross.ico" Stretch="None"/>
 
-            <Image x:Name="image" Margin="0" Grid.Row="0" Grid.Column="0" />
             
             <Button x:Name="button" Content="Render" Margin="0" Click="button_Click" Grid.Row="3" Grid.ColumnSpan="1"
                     RenderTransformOrigin="-3.867,1.3" HorizontalContentAlignment="Center"
@@ -49,6 +49,8 @@
                     <RowDefinition Height="3*" MaxHeight="100" />
                     <RowDefinition Height="1*" MaxHeight="100" />
                     <RowDefinition Height="1*" MaxHeight="100" />
+                    <RowDefinition Height="1*" MaxHeight="100" />
+
                 </Grid.RowDefinitions>
 
 
@@ -143,6 +145,7 @@
                     <Label x:Name="label2" Content="Tile Size" Margin="0" HorizontalContentAlignment="Stretch"
                            VerticalContentAlignment="Stretch" />
                 </Grid>
+                <ComboBox x:Name="comboBox" Margin="10,0" Grid.Row="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" SelectionChanged="comboBox_SelectionChanged"/>
 
             </Grid>
             

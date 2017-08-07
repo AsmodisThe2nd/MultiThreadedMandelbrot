@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Fractal.ColorMappers;
 using Microsoft.Win32;
 using Xceed.Wpf.Toolkit;
 
@@ -26,6 +30,8 @@ namespace Fractal
 
         private decimal _centerX;
         private decimal _centerY;
+
+        private Dictionary<string, Type> _colorMappers;
         private decimal _complexZoom = 1;
         private int _previewMaxIt = 1000;
 
@@ -38,6 +44,7 @@ namespace Fractal
 
         private bool _typing;
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -45,20 +52,25 @@ namespace Fractal
             _bmpLock = new object();
 
 
-            _previewMandelbrot = new Mandelbrot(_previewMaxIt, _centerX, _centerY, _complexZoom,
+            _previewMandelbrot = new Mandelbrot("Preview", _previewMaxIt, _centerX, _centerY, _complexZoom,
                 _previewResultX, _previewResultY, _previewMaxTileSize);
             _previewMandelbrot.NewTileAvailable += RefreshImage;
 
 
-            _renderMandelbrot = new Mandelbrot(_renderMaxIt, _centerX, _centerY, _complexZoom,
+            _renderMandelbrot = new Mandelbrot("Render", _renderMaxIt, _centerX, _centerY, _complexZoom,
                 _renderResultX, _renderResultY, _renderMaxTileSize);
             _renderMandelbrot.NewTileAvailable += RefreshImage;
 
-            _timer = new DispatcherTimer {Interval = TimeSpan.FromMilliseconds(200)};
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _timer.Tick += StopTyping;
             _timer.IsEnabled = true;
-            _initialized = true;
 
+            RegisterColorMappers();
+
+            comboBox.ItemsSource = _colorMappers.Keys;
+
+
+            _initialized = true;
             Preview();
         }
 
@@ -77,7 +89,7 @@ namespace Fractal
         {
             lock (_bmpLock)
             {
-                Dispatcher.BeginInvoke(new Action(() => _bmp = ((Mandelbrot) sender).getImage().Clone()));
+                Dispatcher.BeginInvoke(new Action(() => _bmp = ((Mandelbrot)sender).getImage().Clone()));
                 Dispatcher.BeginInvoke(new Action(() => image.Source = _bmp));
             }
         }
@@ -119,55 +131,75 @@ namespace Fractal
 
         private void renderIterationInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _renderMaxIt = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _renderMaxIt = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
         }
 
         private void renderWidthInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _renderResultX = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _renderResultX = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
         }
 
         private void renderHeightInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _renderResultY = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _renderResultY = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
         }
 
 
         private void previewIterationInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _previewMaxIt = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _previewMaxIt = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
         }
 
         private void previewWidthInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _previewResultX = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _previewResultX = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
         }
 
         private void previewHeightInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _previewResultY = (int) ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _previewResultY = (int)((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
         }
 
 
         private void centerXInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _centerX = ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _centerX = ((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
         }
 
         private void centerYInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _centerY = ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _centerY = ((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
         }
 
         private void zoomInput_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            _complexZoom = ((DecimalUpDown) sender).Value.GetValueOrDefault();
+            _complexZoom = ((DecimalUpDown)sender).Value.GetValueOrDefault();
             Preview();
+        }
+
+        private void RegisterColorMappers()
+        {
+            _colorMappers = new Dictionary<string, Type>
+            {
+                {"HsvColorMapper", typeof(HsvColorMapper)},
+                {"SinoidColorMapper", typeof(SinoidColorMapper)}
+            };
+        }
+
+        private void comboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var s = (ComboBox)sender;
+
+            Type t = _colorMappers[e.AddedItems[0].ToString()];
+            AbstractColorMapper c = (AbstractColorMapper) Activator.CreateInstance(t);
+            _previewMandelbrot.SetColorMapper(c);
+            _renderMandelbrot.SetColorMapper(c);
+            _previewMandelbrot.ReColor();
         }
     }
 }

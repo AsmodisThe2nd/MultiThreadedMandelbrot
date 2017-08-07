@@ -5,28 +5,32 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Fractal.ColorMappers;
 
 namespace Fractal
 {
     internal class Mandelbrot
     {
-        private object _byteBufferLock;
-        private bool _changedSinceLastCalculation;
-        private IColorMapper _colorMapper;
-        private IColorMapper _defaultColorMapper;
-        private ConcurrentQueue<FractalTask> _drawingTasks;
-        private int _maxIterations;
         private readonly int _maxPixelTileSize;
         private readonly int _numThreadsPerTaskQueue = 4;
+        private object _byteBufferLock;
+        private bool _changedSinceLastCalculation;
+        private AbstractColorMapper _colorMapper;
+        private AbstractColorMapper _defaultColorMapper;
+        private ConcurrentQueue<FractalTask> _drawingTasks;
+        private int _maxIterations;
+        private bool _onlyColorChanged;
         private byte[] _pixelValues;
         private int _pixelWidth, _pixelHeight;
+        private ConcurrentQueue<FractalTask> _previousDrawnTasks;
         private object _settingsLock;
         private bool _stopRendering;
         private bool _stopThreads;
         private ConcurrentQueue<FractalTask> _tasks;
         private decimal _x, _y, _complexWidth, _complexHeight;
+        public string Name { get; }
 
-        public Mandelbrot(int maxIterations = 200, decimal centerReal = 0, decimal centerIm = 0, decimal zoom = 1,
+        public Mandelbrot(string name, int maxIterations = 200, decimal centerReal = 0, decimal centerIm = 0, decimal zoom = 1,
             int pixelWidth = 1920, int pixelHeight = 1080, int maxTileSize = 64)
         {
             decimal complexWidth = 4;
@@ -40,6 +44,7 @@ namespace Fractal
             _y = edgeIm;
             _complexHeight = complexHeight;
             _complexWidth = complexWidth;
+            Name = name;
             _maxPixelTileSize = maxTileSize;
             _pixelWidth = pixelWidth;
             _pixelHeight = pixelHeight;
@@ -48,13 +53,15 @@ namespace Fractal
             GeneralSetup();
         }
 
-        public Mandelbrot(int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth = 1920,
+
+        public Mandelbrot(string name, int maxIterations, decimal x, decimal y, decimal width, decimal height, int pixelWidth = 1920,
             int pixelHeight = 1080, int maxTileSize = 64)
         {
             _x = x;
             _y = y;
             _complexWidth = width;
             _complexHeight = height;
+            Name = name;
             _maxPixelTileSize = maxTileSize;
             _pixelWidth = pixelWidth;
             _pixelHeight = pixelHeight;
@@ -70,17 +77,18 @@ namespace Fractal
             _stopThreads = false;
             _tasks = new ConcurrentQueue<FractalTask>();
             _drawingTasks = new ConcurrentQueue<FractalTask>();
+            _previousDrawnTasks = new ConcurrentQueue<FractalTask>();
             _pixelValues = new byte[PixelFormats.Bgra32.BitsPerPixel / 8 * _pixelWidth * _pixelHeight];
-            var mainThread = new Thread(MainThreadTask) {IsBackground = true, Name = "MandelbrotMainThread"};
+            var mainThread = new Thread(MainThreadTask) {IsBackground = true, Name = this.Name + ": MandelbrotMainThread"};
             _defaultColorMapper = new HsvColorMapper();
             for (var i = 0; i < _numThreadsPerTaskQueue; i++)
             {
-                var workerThread = new Thread(WorkerTask) {IsBackground = true, Name = "WorkerThread " + i};
+                var workerThread = new Thread(WorkerTask) {IsBackground = true, Name = this.Name + ": WorkerThread " + i};
                 var drawingThread =
                     new Thread(DrawingWorkerTask)
                     {
                         IsBackground = true,
-                        Name = "DrawingThread " + i
+                        Name = this.Name + ": DrawingThread " + i
                     }; //Both kinds of Threads do both tasks. But drawing Threads prioritize drawing and normal workers prioritize calculation
                 workerThread.Start();
                 drawingThread.Start();
@@ -88,9 +96,10 @@ namespace Fractal
             mainThread.Start();
         }
 
-        public void SetColorMapper(IColorMapper c)
+        public void SetColorMapper(AbstractColorMapper c)
         {
             _colorMapper = c;
+            _colorMapper.redrawWanted += (sender, args) => { ReColor(); };
         }
 
         private void WorkerTask()
@@ -160,8 +169,19 @@ namespace Fractal
                     if (_changedSinceLastCalculation)
                     {
                         Debug.WriteLine("Creating tasks...");
-                        PartitionAndPlanTasks();
-                        _changedSinceLastCalculation = false;
+                        if (_onlyColorChanged)
+                        {
+                            FractalTask t;
+                            while (_previousDrawnTasks.TryDequeue(out t))
+                                _drawingTasks.Enqueue(t);
+                            _onlyColorChanged = false;
+                            _changedSinceLastCalculation = false;
+                        }
+                        else
+                        {
+                            PartitionAndPlanTasks();
+                            _changedSinceLastCalculation = false;
+                        }
                     }
                 }
                 Thread.Sleep(100);
@@ -216,6 +236,7 @@ namespace Fractal
 
                 _stopRendering = false;
                 _changedSinceLastCalculation = true;
+                _onlyColorChanged = false;
             }
         }
 
@@ -244,6 +265,7 @@ namespace Fractal
 
         private void InternalCalculate(FractalTask t)
         {
+            System.Diagnostics.Debug.WriteLine(Thread.CurrentThread.Name + ": Calculating");
             for (var y = 0; y < t.Height; y++)
             {
                 var cIm = t.GetImaginaryPart(y);
@@ -276,8 +298,20 @@ namespace Fractal
                 _drawingTasks.Enqueue(t);
         }
 
+        public void ReColor()
+        {
+            lock (_settingsLock)
+            {
+                _onlyColorChanged = true;
+                _changedSinceLastCalculation = true;
+            }
+        }
+
+
         private void Draw(FractalTask t)
         {
+           System.Diagnostics.Debug.WriteLine(Thread.CurrentThread.Name + ": Drawing");
+
             var colorBuffer = new byte[3];
 
 
@@ -303,6 +337,7 @@ namespace Fractal
             if (_stopRendering)
                 return;
 
+            _previousDrawnTasks.Enqueue(t);
             OnTileAvailable(new EventArgs());
         }
 
@@ -335,6 +370,8 @@ namespace Fractal
                 _tasks.TryDequeue(out t);
             while (!_drawingTasks.IsEmpty)
                 _drawingTasks.TryDequeue(out t);
+            while (!_previousDrawnTasks.IsEmpty)
+                _previousDrawnTasks.TryDequeue(out t);
         }
     }
 }
